@@ -1,33 +1,16 @@
 import { findIndex } from '../common/helper.js'
-const user = [
-    {
-        id: 1,
-        name: "Bharath",
-        email: "bharath@gmail.com",
-        password: "123",
-        status: true,
-        role: "user"
-    }, {
-        id: 2,
-        name: "kumar",
-        email: "kumar@gmail.com",
-        password: "1234566",
-        status: true,
-        role: "user"
-    }, {
-        id: 3,
-        name: "ajith",
-        email: "aJITH@gmail.com",
-        password: "1234566",
-        status: true,
-        role: "user"
-    }
-]
+import DB_CONFIG from '../config/config.js'
+import mongodb, { MongoClient } from 'mongodb'
+
+const user = []
+const client = new MongoClient(DB_CONFIG.DB_URL)
 
 
-
-const getAllUsers = (req, res) => {
+const getAllUsers = async (req, res) => {
+    await client.connect()
     try {
+        const db = await client.db(DB_CONFIG.DB_NAME)
+        const user = await db.collection('user').find().toArray()
         res.status(200).send({
             message: "users data sessefully fatching",
             user
@@ -38,38 +21,19 @@ const getAllUsers = (req, res) => {
             message: "internal server error"
         })
     }
-}
-
-const getUserById = (req, res) => {
-    try {
-        const { id } = req.params
-        let index = findIndex(user, id)
-        if (index != -1) {
-            res.status(200).send({
-                message: "fetching data seccesfull",
-                user: user[index]
-            })
-        }
-        else {
-            res.status(400).send({
-                message: "invalid user id"
-            })
-        }
-
-    } catch (error) {
-        res.status(500).send({
-            message: "internal server error"
-        })
+    finally {
+        client.close()
     }
 }
 
-const addUser = (req, res) => {
+const getUserById = async (req, res) => {
+    await client.connect()
     try {
-        let id = user.length ? user[user.length - 1].id + 1 : 1
-        req.body.id = id
-        user.push(req.body)
+        const db = await client.db(DB_CONFIG.DB_NAME)
+        const user = await db.collection('user').findOne({ _id: new mongodb.ObjectId(req.params) })
         res.status(200).send({
-            message: "add data seccesfull"
+            message: "users data sessefully fatching",
+            user
         })
 
     } catch (error) {
@@ -77,24 +41,55 @@ const addUser = (req, res) => {
             message: "internal server error"
         })
     }
+    finally {
+        client.close()
+    }
 }
 
-const editUser = (req, res) => {
+const addUser = async (req, res) => {
+    await client.connect()
     try {
-        const { id } = req.params
-        let index = findIndex(user, id)
-
-        if (index !== -1) {
-            req.body.id = Number(id)
-            user.splice(index, 1, req.body)
+        const db = await client.db(DB_CONFIG.DB_NAME)
+        const user = await db.collection('user').findOne({ email: req.body.email })
+        if (!user) {
+            let newUser = await db.collection('user').insertOne(req.body)
             res.status(200).send({
-                message: "edit data seccesfull",
-
+                message: "add data seccesfull"
             })
         }
         else {
             res.status(400).send({
-                message: "invalid user id"
+                message: `this ${req.body.email} alreay exect`
+            })
+
+        }
+
+    } catch (error) {
+        res.status(500).send({
+            message: "internal server error"
+        })
+    }
+    finally {
+        client.close()
+    }
+}
+
+const editUser = async (req, res) => {
+    await client.connect()
+    try {
+        const db = await client.db(DB_CONFIG.DB_NAME)
+        const user = await db.collection('user').findOne({ _id: new mongodb.ObjectId(req.params) })
+        if (user) {
+            await db.collection('user').updateOne({ _id: new mongodb.ObjectId(req.params) }, { $set: req.body })
+
+            res.status(200).send({
+                message: "users data sessefully fatching",
+            })
+        }
+        else {
+            res.status(400).send({
+                message: "invalid user",
+
             })
         }
 
@@ -103,29 +98,36 @@ const editUser = (req, res) => {
             message: "internal server error"
         })
     }
+    finally {
+        client.close()
+    }
 }
 
-const deleteUser = (req, res) => {
+const deleteUser = async (req, res) => {
+    await client.connect()
     try {
-        const { id } = req.params
-        let index = findIndex(user, id)
-        if (index !== -1) {
-            user.splice(index, 1)
+        const db = await client.db(DB_CONFIG.DB_NAME)
+        const user = await db.collection('user').findOne({ _id: new mongodb.ObjectId(req.params) })
+        if (user) {
+            await db.collection('user').deleteOne({ _id: new mongodb.ObjectId(req.params) })
             res.status(200).send({
-                message: "delete data seccesfull",
+                message: "users deleted sessefully fatching",
 
             })
         }
         else {
             res.status(400).send({
-                message: "invalid user id"
+                message: "invalid user id",
+
             })
         }
-
     } catch (error) {
         res.status(500).send({
             message: "internal server error"
         })
+    }
+    finally {
+        client.close()
     }
 }
 

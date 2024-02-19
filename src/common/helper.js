@@ -1,4 +1,4 @@
-export const findIndex = (array, id) => {
+export const    findIndex = (array, id) => {
 
     for (let i = 0; i < array.length; i++) {
         if (array[i].id == id)
